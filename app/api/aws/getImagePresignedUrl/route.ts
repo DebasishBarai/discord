@@ -1,15 +1,31 @@
-import { currentprofile } from '@/lib/current-profile';
-import { NextResponse } from 'next/server';
+import { currentprofile } from "@/lib/current-profile";
+import { NextResponse } from "next/server";
 
-import { GetObjectCommand, S3Client, S3 } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { prisma } from "@/lib/prisma";
 export async function POST(req: Request) {
   try {
-    const { imageUrl } = await req.json();
+    const { serverId, imageUrl } = await req.json();
     const profile = await currentprofile();
 
     if (!profile) {
-      return new NextResponse('Unauthorized', { status: 401 });
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const server = await prisma.server.findUnique({
+      where: {
+        id: serverId,
+        members: {
+          some: {
+            profileId: profile.id,
+          },
+        },
+      },
+    });
+
+    if (!server) {
+      return new NextResponse("Unauthorised", { status: 401 });
     }
 
     // @ts-ignore
@@ -23,7 +39,7 @@ export async function POST(req: Request) {
 
     const command = new GetObjectCommand({
       Bucket: process.env.AWS_BUCKET_NAME,
-      Key: `/users/${profile.id}/servers/${imageUrl}`,
+      Key: `/users/${server.profileId}/servers/${serverId}/serverImage/${imageUrl}`,
     });
 
     const url = await getSignedUrl(client, command, { expiresIn: 60 });
@@ -32,7 +48,7 @@ export async function POST(req: Request) {
       getObjectPreSignedUrl: url,
     });
   } catch (error) {
-    console.log('[SERVERS_GET_OBJECT_URL] ', error);
-    return new NextResponse('Internal Error', { status: 500 });
+    console.log("[SERVERS_GET_OBJECT_URL] ", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }

@@ -1,16 +1,18 @@
-import { currentprofile } from '@/lib/current-profile';
-import { NextResponse } from 'next/server';
+import { currentprofile } from "@/lib/current-profile";
+import { NextResponse } from "next/server";
 
-import { PutObjectCommand, S3Client, S3 } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 export async function POST(req: Request) {
   try {
-    const { imageUrl, fileType } = await req.json();
+    const { serverId, imageUrl, fileType } = await req.json();
     const profile = await currentprofile();
 
     if (!profile) {
-      return new NextResponse('Unauthorized', { status: 401 });
+      return new NextResponse("Unauthorized", { status: 401 });
     }
+
+    //[TODO]: Check the profile is admin of the server with the serverId
 
     // @ts-ignore
     const client = new S3Client({
@@ -23,7 +25,7 @@ export async function POST(req: Request) {
 
     const command = new PutObjectCommand({
       Bucket: process.env.AWS_BUCKET_NAME,
-      Key: `/users/${profile.id}/servers/${imageUrl}.${fileType}`,
+      Key: `/users/${profile.id}/servers/${serverId}/serverImage/${imageUrl}`,
       ContentType: `image/${fileType}`,
     });
 
@@ -32,7 +34,7 @@ export async function POST(req: Request) {
       putObjectPreSignedUrl: url,
     });
   } catch (error) {
-    console.log('[SERVERS_PUT_OBJECT_URL] ', error);
-    return new NextResponse('Internal Error', { status: 500 });
+    console.log("[SERVERS_PUT_OBJECT_URL] ", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }

@@ -1,8 +1,9 @@
-import { redirectToSignIn } from "@clerk/nextjs";
-import { redirect } from "next/navigation";
+import { redirectToSignIn } from '@clerk/nextjs';
+import { redirect } from 'next/navigation';
 
-import { prisma } from "@/lib/prisma";
-import { currentprofile } from "@/lib/current-profile";
+import { prisma } from '@/lib/prisma';
+import { currentprofile } from '@/lib/current-profile';
+import { ServerSidebar } from '@/components/server/server-sidebar';
 
 const ServerIdLayout = async ({
   children,
@@ -29,16 +30,15 @@ const ServerIdLayout = async ({
   });
 
   if (!server) {
-    return redirect("/");
+    return redirect('/');
   }
 
   return (
-    <div className="h-full">
-      <div className="hidden md:flex h-full w-60 z-20 flex-col fixed inset-y-0">
-        {/* <ServerSidebar serverId={params.serverId} /> */}
-        ServerSidebar
+    <div className='h-full'>
+      <div className='hidden md:flex h-full w-60 z-20 flex-col fixed inset-y-0'>
+        <ServerSidebar serverId={params.serverId} />
       </div>
-      <main className="h-full md:pl-60">{children}</main>
+      <main className='h-full md:pl-60'>{children}</main>
     </div>
   );
 };

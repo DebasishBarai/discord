@@ -29,7 +29,7 @@ model Server {
   id String @id @default(uuid())
   name String
   imageUrl String @db.Text
-  inviteCode String @db.Text
+  inviteCode String @unique
 
   profileId String
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
@@ -82,6 +82,9 @@ model Channel {
 
   serverId String
   server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([profileId])
   @@index([serverId])

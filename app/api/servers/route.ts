@@ -6,13 +6,14 @@ import { v4 as uuidv4 } from "uuid";
 
 export async function POST(req: Request) {
   try {
-    const { name, imageUrl } = await req.json();
+    const { name, fileType } = await req.json();
     const profile = await currentprofile();
 
     if (!profile) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
+    const imageUrl = `${uuidv4()}.${fileType}`;
     const server = await prisma.server.create({
       data: {
         profileId: profile.id,

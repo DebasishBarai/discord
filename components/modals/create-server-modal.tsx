@@ -22,6 +22,7 @@ import {
   FormLabel,
   FormMessage,
 } from '../ui/form';
+import { v4 as uuidv4 } from 'uuid';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { FileUpload } from '../file-upload';
@@ -31,45 +32,79 @@ const formSchema = z.object({
   name: z.string().min(1, {
     message: 'Server name is required',
   }),
-  imageUrl: z.string().min(1, {
-    message: 'Server image is required',
-  }),
+  // imageUrl: z.string().min(1, {
+  //   message: 'Server image is required',
+  // }),
 });
 
 export const CreateServerModal = () => {
   const { isOpen, onClose, type } = useModal();
-
   const router = useRouter();
 
   const isModalOpen = isOpen && type === 'createServer';
-
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
-      imageUrl: '',
+      // imageUrl: '',
     },
   });
 
   const isLoading = form.formState.isSubmitting;
 
+  const [file, setFile] = useState<File | null>(null);
+
+  const onFileUpload = (file: File | null) => {
+    setFile(file);
+    console.log(file);
+  };
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      await axios.post('api/servers', values);
+      if (!file) {
+        return;
+      }
+      const imageUrl = `${values.name}/serverImage/${uuidv4()}`;
+      const fileType = file.name.split('.').pop();
+      console.log(fileType);
+      const res = await axios.post('/api/aws/putImagePresignedUrl', {
+        imageUrl: imageUrl,
+        fileType: fileType,
+      });
+
+      // console.log(res.data.putObjectPreSignedUrl);
+      if (res.status !== 200) {
+        return;
+      }
+
+      const options = {
+        headers: {
+          'Content-Type': file.type,
+        },
+      };
+
+      await axios.put(res.data.putObjectPreSignedUrl, file, options);
+
+      const concatenatedValues = {
+        ...values,
+        ...{ imageUrl: `${imageUrl}.${fileType}` },
+      };
+
+      await axios.post('/api/servers', concatenatedValues);
       form.reset();
       router.refresh();
-      window.location.reload();
+      onClose();
     } catch (error) {
       console.log(error);
     }
   };
 
-  if (!isMounted) {
-    return null;
-  }
-
+  const handleClose = () => {
+    form.reset();
+    onClose();
+  };
   return (
-    <Dialog open>
+    <Dialog open={isModalOpen} onOpenChange={handleClose}>
       <DialogContent className='bg-white text-black p-0 overflow-hidden'>
         <DialogHeader className='pt-8 px-6'>
           <DialogTitle className='text-2xl text-center font-bold'>
@@ -84,9 +119,9 @@ export const CreateServerModal = () => {
           <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-8'>
             <div className='space-y-8 px-6'>
               <div className='flex items-center justify-center text-center'>
-                <FormField
+                {/* <FormField
                   control={form.control}
-                  name='imageUrl'
+                  name="imageUrl"
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
@@ -94,7 +129,8 @@ export const CreateServerModal = () => {
                       </FormControl>
                     </FormItem>
                   )}
-                />
+                /> */}
+                <FileUpload onChange={onFileUpload} />
               </div>
 
               <FormField
@@ -119,7 +155,7 @@ export const CreateServerModal = () => {
               />
             </div>
             <DialogFooter className='bg-gray-100 px-6 py-4'>
-              <Button variant='primary' disabled={isLoading}>
+              <Button variant='primary' disabled={isLoading} type='submit'>
                 Create
               </Button>
             </DialogFooter>
