@@ -6,6 +6,7 @@ import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import { v4 as uuidv4 } from "uuid";
 import {
   Dialog,
   DialogContent,
@@ -22,7 +23,6 @@ import {
   FormLabel,
   FormMessage,
 } from "../ui/form";
-import { v4 as uuidv4 } from "uuid";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { FileUpload } from "../file-upload";
@@ -37,11 +37,22 @@ const formSchema = z.object({
   // }),
 });
 
-export const CreateServerModal = () => {
-  const { isOpen, onClose, type } = useModal();
+type ServerDetailsType = {
+  serverId: string;
+  imageUrl: string;
+};
+
+export const EditServerModal = () => {
+  const { isOpen, onClose, type, data } = useModal();
   const router = useRouter();
 
-  const isModalOpen = isOpen && type === "createServer";
+  const isModalOpen = isOpen && type === "editServer";
+  const { server } = data;
+
+  const [serverDetails, setserverDetails] = useState<ServerDetailsType | null>(
+    null,
+  );
+
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -49,6 +60,17 @@ export const CreateServerModal = () => {
       // imageUrl: '',
     },
   });
+
+  useEffect(() => {
+    if (server) {
+      form.setValue("name", server.name);
+      // form.setValue ('imageUrl', server.imageUrl)
+      setserverDetails({
+        serverId: server.id,
+        imageUrl: server.imageUrl,
+      });
+    }
+  }, [server, form]);
 
   const isLoading = form.formState.isSubmitting;
 
@@ -72,7 +94,10 @@ export const CreateServerModal = () => {
         ...{ fileType: fileType },
       };
 
-      const response = await axios.post("/api/servers", concatenatedValues);
+      const response = await axios.patch(
+        `/api/servers/${server?.id}`,
+        concatenatedValues,
+      );
       console.log("api/server response: ", response.data);
       if (response.status !== 200) {
         return;
@@ -105,6 +130,7 @@ export const CreateServerModal = () => {
       // };
 
       // await axios.post('/api/servers', concatenatedValues);
+
       form.reset();
       router.refresh();
       onClose();
@@ -144,7 +170,14 @@ export const CreateServerModal = () => {
                     </FormItem>
                   )}
                 /> */}
-                <FileUpload onChange={onFileUpload} />
+                {serverDetails ? (
+                  <FileUpload
+                    serverDetails={serverDetails}
+                    onChange={onFileUpload}
+                  />
+                ) : (
+                  <FileUpload onChange={onFileUpload} />
+                )}
               </div>
 
               <FormField
@@ -170,7 +203,7 @@ export const CreateServerModal = () => {
             </div>
             <DialogFooter className="bg-gray-100 px-6 py-4">
               <Button variant="primary" disabled={isLoading} type="submit">
-                Create
+                Save
               </Button>
             </DialogFooter>
           </form>
