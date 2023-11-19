@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import qs from "querystring";
+import qs from "query-string";
 import {
   Dialog,
   DialogContent,
@@ -55,7 +55,7 @@ export const MembersModal = () => {
   const onKick = async (memberId: string) => {
     try {
       setLoadingId(memberId);
-      const url = qs.stringify({
+      const url = qs.stringifyUrl({
         url: `/api/members/${memberId}`,
         query: {
           serverId: server?.id,

@@ -1,6 +1,7 @@
 import { currentprofile } from "@/lib/current-profile";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { v4 as uuidv4 } from "uuid";
 
 export async function DELETE(
   req: Request,
@@ -33,7 +34,9 @@ export async function PATCH(
   try {
     const profile = await currentprofile();
 
-    const { name, imageUrl } = await req.json();
+    const { name, fileType } = await req.json();
+
+    const imageUrl = `${uuidv4()}.${fileType}`;
 
     if (!profile) {
       return new NextResponse("Unauthorized", { status: 401 });
